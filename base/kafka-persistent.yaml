@@ -1,0 +1,63 @@
+apiVersion: kafka.strimzi.io/v1beta2
+kind: Kafka
+metadata:
+  name: my-cluster
+  namespace: kafka
+spec:
+  entityOperator:
+    topicOperator: {}
+    userOperator: {}
+  kafka:
+    replicas: 3
+    storage:
+      class: managed-premium
+      deleteClaim: false
+      size: 50Gi
+      type: persistent-claim
+    config:
+      controller.quorum.voters: "1@my-cluster-kafka-0.my-cluster-kafka-brokers.kafka.svc.cluster.local:9093,2@my-cluster-kafka-1.my-cluster-kafka-brokers.kafka.svc.cluster.local:9093,3@my-cluster-kafka-2.my-cluster-kafka-brokers.kafka.svc.cluster.local:9093"
+      default.replication.factor: 3
+      log.dirs: /var/lib/kafka/data
+      min.insync.replicas: 2
+      node.id: 1
+      offsets.topic.replication.factor: 3
+      process.roles: broker,controller
+      transaction.state.log.min.isr: 2
+      transaction.state.log.replication.factor: 3
+    listeners:
+      - name: plain
+        port: 9092
+        tls: false
+        type: internal
+      - name: tls
+        port: 9093
+        tls: true
+        type: internal
+        authentication:
+          type: tls
+        configuration:
+          brokerCertChainAndKey:
+            certificate: server.crt
+            key: server.key
+            secretName: kafka-tls-secret
+      - name: external
+        port: 9094
+        tls: true
+        type: loadbalancer
+        authentication:
+          type: tls
+        configuration:
+          brokerCertChainAndKey:
+            certificate: server.crt
+            key: server.key
+            secretName: kafka-tls-secret
+  kafkaExporter:
+    groupRegex: ".*"
+    topicRegex: ".*"
+  zookeeper:
+    replicas: 3
+    storage:
+      class: managed-premium
+      deleteClaim: false
+      size: 100Gi
+      type: persistent-claim
